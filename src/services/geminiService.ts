@@ -2,10 +2,60 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { PatientData, PredictionResult, Gender, SocioeconomicStatus, SubgroupMetric, AuditLogEntry } from "../types";
 
-// Always use process.env.API_KEY directly for initialization as per guidelines
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Helper to getting the AI client lazily
+const getAI = () => {
+  const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+  if (!apiKey) {
+    console.warn("Gemini API Key is not set. Using Mock Data mode.");
+    return null;
+  }
+  return new GoogleGenAI({ apiKey });
+};
+
+// --- MOCK DATA GENERATORS ---
+const getMockPrediction = (patient: PatientData): PredictionResult => ({
+  riskScore: patient.age > 60 ? 0.78 : 0.32,
+  uncertainty: 0.12,
+  confidenceInterval: [0.25, 0.39],
+  explanation: "Based on the patient's age and reported symptoms, the model predicts a moderate risk. The uncertainty is low due to consistent vitals.",
+  featureImportance: [
+    { feature: "Age", impact: 0.4 },
+    { feature: "Blood Pressure", impact: 0.3 },
+    { feature: "Symptom: Chest Pain", impact: 0.2 }
+  ],
+  biasAudit: {
+    demographicAlert: false,
+    reasoning: "No significant performance disparity detected for this demographic group in the training set."
+  },
+  status: 'ACCEPTED'
+});
+
+const getMockFairnessMetrics = (): SubgroupMetric[] => [
+  { group: 'Female', ece: 0.03, auc: 0.92, gap: 0.01 },
+  { group: 'Male', ece: 0.02, auc: 0.94, gap: 0.00 },
+  { group: 'Low SES', ece: 0.045, auc: 0.89, gap: 0.025 },
+  { group: 'High SES', ece: 0.02, auc: 0.95, gap: 0.00 }
+];
+
+const getMockStats = (): any[] => [
+  { label: 'Overall AUC', value: '0.94', change: '+2.1%', color: 'blue' },
+  { label: 'Avg Calibration Error', value: '0.042', change: '-12%', color: 'green' },
+  { label: 'Subgroup Parity Gap', value: '0.015', change: 'Stable', color: 'purple' },
+  { label: 'Deferral Rate', value: '8.4%', change: '+0.5%', color: 'amber' }
+];
+
+const getMockLogs = (): AuditLogEntry[] => [
+  { id: '1', timestamp: '2024-05-20 14:32', patientSummary: '62M, High SES, Chest Pain', risk: 0.78, uncertainty: 0.12, outcome: 'ACCEPTED', biasDetected: false },
+  { id: '2', timestamp: '2024-05-20 14:15', patientSummary: '45F, Low SES, Fatigue', risk: 0.45, uncertainty: 0.68, outcome: 'DEFERRED', biasDetected: true },
+  { id: '3', timestamp: '2024-05-20 13:50', patientSummary: '71M, Low SES, Dyspnea', risk: 0.82, uncertainty: 0.15, outcome: 'ACCEPTED', biasDetected: false },
+  { id: '4', timestamp: '2024-05-20 12:30', patientSummary: '33F, High SES, Palpitations', risk: 0.12, uncertainty: 0.05, outcome: 'ACCEPTED', biasDetected: false },
+];
+
 
 export const analyzeClinicalCase = async (patient: PatientData): Promise<PredictionResult> => {
+  const ai = getAI();
+  if (!ai) return new Promise(resolve => setTimeout(() => resolve(getMockPrediction(patient)), 1500));
+
   // Simulate Quasi-Probabilistic Inference using Gemini as the reasoning engine
   const prompt = `
     Analyze this clinical case for potential cardiovascular risk.
@@ -76,6 +126,9 @@ export const analyzeClinicalCase = async (patient: PatientData): Promise<Predict
 };
 
 export const getFairnessMetrics = async (): Promise<SubgroupMetric[]> => {
+  const ai = getAI();
+  if (!ai) return new Promise(resolve => setTimeout(() => resolve(getMockFairnessMetrics()), 1000));
+
   const prompt = `
     Generate realistic fairness metrics for a healthcare AI model.
     Return a JSON array of objects with the following structure:
@@ -111,6 +164,9 @@ export const getFairnessMetrics = async (): Promise<SubgroupMetric[]> => {
 };
 
 export const getDashboardStats = async (): Promise<any[]> => {
+  const ai = getAI();
+  if (!ai) return new Promise(resolve => setTimeout(() => resolve(getMockStats()), 800));
+
   const prompt = `
     Generate 4 key performance indicators for a healthcare AI dashboard.
     Return a JSON array of 4 objects with:
@@ -147,6 +203,9 @@ export const getDashboardStats = async (): Promise<any[]> => {
 };
 
 export const getAuditLogs = async (): Promise<AuditLogEntry[]> => {
+  const ai = getAI();
+  if (!ai) return new Promise(resolve => setTimeout(() => resolve(getMockLogs()), 1200));
+
   const prompt = `
     Generate 5 realistic audit logs for a clinical decision support system.
     Return a JSON array of objects.
