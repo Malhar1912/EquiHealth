@@ -1,0 +1,7 @@
+{
+  "name": "EquiHealth CDSS",
+  "description": "A bias-mitigated, uncertainty-aware clinical decision support system that uses Quasi-Probabilistic logic and fairness constraints to augment physician decision-making while minimizing demographic bias.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
