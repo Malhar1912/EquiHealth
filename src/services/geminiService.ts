@@ -52,12 +52,15 @@ const getMockLogs = (): AuditLogEntry[] => [
 ];
 
 
-export const analyzeClinicalCase = async (patient: PatientData): Promise<PredictionResult> => {
+export const analyzeClinicalCase = async (patient: PatientData, perspective: 'doctor' | 'patient' = 'doctor'): Promise<PredictionResult> => {
   const ai = getAI();
-  if (!ai) return new Promise(resolve => setTimeout(() => resolve(getMockPrediction(patient)), 1500));
+  if (!ai) {
+    throw new Error("Gemini API Key is not set.");
+  }
 
-  // Simulate Quasi-Probabilistic Inference using Gemini as the reasoning engine
-  const prompt = `
+  let prompt = "";
+  if (perspective === 'doctor') {
+    prompt = `
     Analyze this clinical case for potential cardiovascular risk.
     Patient: Age ${patient.age}, Gender ${patient.gender}, Socioeconomic Status: ${patient.ses}.
     Symptoms: ${patient.symptoms}
@@ -72,10 +75,68 @@ export const analyzeClinicalCase = async (patient: PatientData): Promise<Predict
     3. Generate SHAP-like feature importance.
     4. Provide a bias audit explanation.
   `;
+  } else {
+    // Patient Perspective - Triage Mode
+    const patientInput = `
+       Symptoms: ${patient.symptoms}
+       ${patient.history ? `History: ${patient.history}` : ''}
+    `;
+
+    if (patient.image) {
+      prompt = `
+       You are a helpful medical assistant acting as a Triage System.
+       The patient has uploaded an image and provided symptoms.
+       
+       Patient Input:
+       ${patientInput}
+       
+       Task:
+       1. ANALYZE the provided image (inline data).
+       2. OUTPUT a JSON response with the following strictly:
+          - riskScore: Estimate severity (0-1).
+          - uncertainty: Conceptually (0-1).
+          - explanation: A simple message to the patient.
+             Must include:
+             a) What you see in the image (Visual Description).
+             b) TRIAGE RECOMMENDATION (e.g., "Please see a doctor immediately", "Monitor at home", "Routine checkup").
+             Do not list vitals or complex stats. Focus on what to do next.
+       `;
+    } else {
+      prompt = `
+       You are a helpful medical assistant acting as a Triage System.
+       
+       Patient Input:
+       ${patientInput}
+
+       Task:
+       1. OUTPUT a JSON response with the following strictly:
+          - riskScore: Estimate severity (0-1).
+          - uncertainty: Conceptually (0-1).
+          - explanation: A simple message to the patient.
+             Must include:
+             a) Assessment of the symptoms.
+             b) TRIAGE RECOMMENDATION (e.g., "Please see a doctor immediately", "Monitor at home", "Routine checkup").
+             Do not list vitals or complex stats. Focus on what to do next.
+       `;
+    }
+  }
+
+  // Handle Image Content
+  let parts: any[] = [{ text: prompt }];
+
+  if (perspective === 'patient' && patient.image) {
+    const cleanBase64 = patient.image.replace(/^data:image\/\w+;base64,/, "");
+    parts.push({
+      inlineData: {
+        mimeType: "image/jpeg", // Defaulting to jpeg, or could detect
+        data: cleanBase64
+      }
+    });
+  }
 
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: prompt,
+    contents: [{ role: 'user', parts: parts }],
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -127,7 +188,9 @@ export const analyzeClinicalCase = async (patient: PatientData): Promise<Predict
 
 export const getFairnessMetrics = async (): Promise<SubgroupMetric[]> => {
   const ai = getAI();
-  if (!ai) return new Promise(resolve => setTimeout(() => resolve(getMockFairnessMetrics()), 1000));
+  if (!ai) {
+    throw new Error("Gemini API Key is not set.");
+  }
 
   const prompt = `
     Generate realistic fairness metrics for a healthcare AI model.
@@ -165,7 +228,9 @@ export const getFairnessMetrics = async (): Promise<SubgroupMetric[]> => {
 
 export const getDashboardStats = async (): Promise<any[]> => {
   const ai = getAI();
-  if (!ai) return new Promise(resolve => setTimeout(() => resolve(getMockStats()), 800));
+  if (!ai) {
+    throw new Error("Gemini API Key is not set.");
+  }
 
   const prompt = `
     Generate 4 key performance indicators for a healthcare AI dashboard.
@@ -204,7 +269,9 @@ export const getDashboardStats = async (): Promise<any[]> => {
 
 export const getAuditLogs = async (): Promise<AuditLogEntry[]> => {
   const ai = getAI();
-  if (!ai) return new Promise(resolve => setTimeout(() => resolve(getMockLogs()), 1200));
+  if (!ai) {
+    throw new Error("Gemini API Key is not set.");
+  }
 
   const prompt = `
     Generate 5 realistic audit logs for a clinical decision support system.

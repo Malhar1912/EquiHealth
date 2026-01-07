@@ -59,14 +59,19 @@ const LandingPage: React.FC = () => {
 
                         <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4">
                             <button
-                                onClick={() => navigate('/app')}
+                                onClick={() => navigate('/app?role=doctor')}
                                 className="w-full sm:w-auto px-8 py-4 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-2xl shadow-xl shadow-teal-600/20 transition-all flex items-center justify-center gap-2 group hover:scale-105 active:scale-95"
                             >
-                                Launch Clinical Dashboard
+                                <Activity className="w-5 h-5" />
+                                Doctor Portal
                                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                             </button>
-                            <button className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-2xl border border-slate-200 transition-all hover:scale-105 active:scale-95">
-                                View Validation Study
+                            <button
+                                onClick={() => navigate('/app?role=patient')}
+                                className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-2xl border border-slate-200 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <CheckCircle2 className="w-5 h-5 text-teal-600" />
+                                Patient Portal
                             </button>
                         </motion.div>
                     </motion.div>

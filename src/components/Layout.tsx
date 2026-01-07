@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Activity,
   ShieldCheck,
@@ -18,12 +19,20 @@ interface Props {
 }
 
 const Layout: React.FC<Props> = ({ children, activeTab, setActiveTab }) => {
-  const navItems = [
+  const [searchParams] = useSearchParams();
+  const role = searchParams.get('role') || 'doctor';
+  /* original items */
+  const allNavItems = [
     { id: 'dashboard', label: 'Monitor', icon: Activity },
     { id: 'assessment', label: 'Triage / Intake', icon: ClipboardList },
     { id: 'audit', label: 'Bias Audit', icon: ShieldCheck },
     { id: 'logs', label: 'Patient Logs', icon: FileText },
   ];
+
+  /* Filter based on role */
+  const navItems = role === 'patient'
+    ? allNavItems.filter(item => item.id === 'assessment')
+    : allNavItems;
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
@@ -47,8 +56,8 @@ const Layout: React.FC<Props> = ({ children, activeTab, setActiveTab }) => {
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group ${activeTab === item.id
-                  ? 'bg-teal-50 text-teal-700 font-semibold shadow-sm border border-teal-100'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-teal-50 text-teal-700 font-semibold shadow-sm border border-teal-100'
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                 }`}
             >
               <item.icon className={`w-5 h-5 transition-colors ${activeTab === item.id ? 'text-teal-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
@@ -102,12 +111,19 @@ const Layout: React.FC<Props> = ({ children, activeTab, setActiveTab }) => {
               <Settings className="w-5 h-5" />
             </button>
             <div className="flex items-center gap-3 pl-2">
-              <div className="text-right hidden sm:block">
-                <div className="text-sm font-bold text-slate-700">Dr. S. Chen</div>
-                <div className="text-[10px] text-slate-400 font-medium uppercase">Cardiologist</div>
-              </div>
+              {role === 'patient' ? (
+                <div className="text-right hidden sm:block">
+                  <div className="text-sm font-bold text-slate-700">Patient View</div>
+                  <div className="text-[10px] text-slate-400 font-medium uppercase">Personal Portal</div>
+                </div>
+              ) : (
+                <div className="text-right hidden sm:block">
+                  <div className="text-sm font-bold text-slate-700">Dr. S. Chen</div>
+                  <div className="text-[10px] text-slate-400 font-medium uppercase">Cardiologist</div>
+                </div>
+              )}
               <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold border-2 border-white shadow-md ring-1 ring-slate-200">
-                SC
+                {role === 'patient' ? 'PT' : 'SC'}
               </div>
             </div>
           </div>

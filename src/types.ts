@@ -21,6 +21,7 @@ export interface PatientData {
   bloodPressure: string;
   bmi: number;
   history: string;
+  image?: string; // Base64 encoded image
 }
 
 export interface PredictionResult {

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
     PatientData,
     PredictionResult,
@@ -20,7 +21,7 @@ interface DashboardState {
     patientForm: PatientData;
     updatePatientForm: (data: Partial<PatientData>) => void;
     result: PredictionResult | null;
-    runInference: () => Promise<void>;
+    runInference: (perspective?: 'doctor' | 'patient') => Promise<void>;
 }
 
 const DashboardContext = createContext<DashboardState | undefined>(undefined);
@@ -37,7 +38,9 @@ const INITIAL_PATIENT_FORM: PatientData = {
 };
 
 export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const [searchParams] = useSearchParams();
+    const role = searchParams.get('role') || 'doctor';
+    const [activeTab, setActiveTab] = useState(role === 'patient' ? 'assessment' : 'dashboard');
     const [isLoading, setIsLoading] = useState(false);
     const [fairnessData, setFairnessData] = useState<SubgroupMetric[]>([]);
     const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
@@ -67,10 +70,10 @@ export const DashboardProvider: React.FC<{ children: ReactNode }> = ({ children 
         setPatientForm(prev => ({ ...prev, ...data }));
     };
 
-    const runInference = async () => {
+    const runInference = async (perspective: 'doctor' | 'patient' = 'doctor') => {
         setIsLoading(true);
         try {
-            const res = await analyzeClinicalCase(patientForm);
+            const res = await analyzeClinicalCase(patientForm, perspective);
             setResult(res);
 
             const newEntry: AuditLogEntry = {
